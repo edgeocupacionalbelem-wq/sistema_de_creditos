@@ -1,0 +1,25 @@
+{% extends "base.html" %}{% block title %}Controle de Créditos - Admin{% endblock %}{% block body %}
+<div class="topbar">
+<div class="title"><h1>Administração da Base</h1><p>Atualize a planilha uma vez e o dashboard público passa a mostrar os novos dados para todos.</p></div>
+<div class="top-actions"><a class="btn secondary" href="/">Ver dashboard</a><a class="btn secondary" href="/admin/logout">Sair</a></div>
+</div>
+<div class="content">
+{% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}<div class="flash-list">{% for category, message in messages %}<div class="alert {{ 'success' if category == 'success' else 'error' }}">{{ message }}</div>{% endfor %}</div>{% endif %}{% endwith %}
+<div class="stats">
+<div class="stat"><div class="stat-label">Última atualização</div><div class="stat-value" style="font-size:22px">{{ ultima_atualizacao or 'Sem base' }}</div></div>
+<div class="stat"><div class="stat-label">Arquivo publicado</div><div class="stat-value" style="font-size:22px">{{ nome_arquivo or 'Nenhum' }}</div></div>
+<div class="stat"><div class="stat-label">Créditos salvos</div><div class="stat-value">{{ ultimo_total }}</div></div>
+<div class="stat"><div class="stat-label">Empresas salvas</div><div class="stat-value">{{ ultimo_empresas }}</div></div>
+</div>
+<div class="card" style="margin-bottom:18px">
+<div class="section-head" style="margin-top:0"><h2>Atualizar planilha publicada</h2><div class="chip">Substitui a base anterior</div></div>
+<form method="POST" enctype="multipart/form-data" style="display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end">
+<div class="field"><label>Nova planilha</label><input class="input" type="file" name="arquivo" accept=".xlsx,.xls" required></div>
+<button class="btn" type="submit">Publicar nova base</button>
+</form>
+</div>
+{% if avisos %}
+<div class="card"><div class="section-head" style="margin-top:0"><h2>Avisos da última importação</h2></div><ul>{% for aviso in avisos %}<li>{{ aviso }}</li>{% endfor %}</ul></div>
+{% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends "base.html" %}{% block title %}Controle de Créditos - Dashboard{% endblock %}{% block body %}
+<div class="topbar">
+<div class="title"><h1>Painel de Créditos</h1><p>Consulta pública dos dados salvos. Ninguém precisa reenviar a planilha para ver o dashboard.</p></div>
+<div class="top-actions">{% if ultima_atualizacao %}<div class="chip">Última atualização: {{ ultima_atualizacao }}</div>{% endif %}{% if nome_arquivo %}<div class="chip">Base: {{ nome_arquivo }}</div>{% endif %}</div>
+</div>
+<div class="filters">
+<form method="GET">
+<div class="field"><label>Visualização</label><select class="select" name="visao"><option value="ano" {% if visao == 'ano' %}selected{% endif %}>Ver por ano</option><option value="mes" {% if visao == 'mes' %}selected{% endif %}>Ver por mês</option><option value="empresa" {% if visao == 'empresa' %}selected{% endif %}>Ver por empresa</option></select></div>
+<div class="field"><label>Início mês</label><select class="select" name="inicio_mes"><option value="">Mês</option>{% for n, nome in meses_select %}<option value="{{ n }}" {% if inicio_mes == n %}selected{% endif %}>{{ nome }}</option>{% endfor %}</select></div>
+<div class="field"><label>Início ano</label><input class="input" type="number" name="inicio_ano" value="{{ inicio_ano }}" placeholder="2025"></div>
+<div class="field"><label>Fim mês</label><select class="select" name="fim_mes"><option value="">Hoje</option>{% for n, nome in meses_select %}<option value="{{ n }}" {% if fim_mes == n %}selected{% endif %}>{{ nome }}</option>{% endfor %}</select></div>
+<div class="field"><label>Fim ano</label><input class="input" type="number" name="fim_ano" value="{{ fim_ano }}" placeholder="Hoje"></div>
+<button class="btn" type="submit">Aplicar</button>
+</form>
+</div>
+<div class="content">
+{% if tem_dados %}
+<div class="stats">
+<div class="stat"><div class="stat-label">Créditos totais</div><div class="stat-value">{{ resumo.total_creditos }}</div></div>
+<div class="stat"><div class="stat-label">Empresas com crédito</div><div class="stat-value">{{ resumo.total_empresas }}</div></div>
+<div class="stat"><div class="stat-label">Anos encontrados</div><div class="stat-value">{{ resumo.total_anos }}</div></div>
+<div class="stat"><div class="stat-label">Meses encontrados</div><div class="stat-value">{{ resumo.total_meses }}</div></div>
+</div>
+<div class="section-head"><h2>{% if visao == 'ano' %}Resumo por ano{% elif visao == 'empresa' %}Resumo por empresa{% else %}Resumo por mês{% endif %}</h2><div class="chip">Somente observação exatamente “NÃO REALIZADO”</div></div>
+{% if grupos %}
+<div class="groups-grid">
+{% for grupo in grupos %}
+<section class="group-card">
+<div class="group-header"><div class="group-title">{{ grupo.nome }}</div><div class="group-meta"><span class="mini-pill">{{ grupo.total_creditos }} crédito(s)</span>{% if visao == 'empresa' %}<span class="mini-pill">{{ grupo.total_anos }} ano(s)</span><span class="mini-pill">{{ grupo.total_meses }} mês(es)</span>{% else %}<span class="mini-pill">{{ grupo.total_empresas }} empresa(s)</span>{% endif %}</div></div>
+<div class="table-wrap">
+<table><thead><tr>{% if visao == 'empresa' %}<th style="width:64%">Recibo</th><th style="width:36%">Qtd. de créditos</th>{% else %}<th style="width:56%">Empresa</th><th style="width:22%">Recibo</th><th style="width:22%">Qtd. de créditos</th>{% endif %}</tr></thead>
+<tbody>
+{% for linha in grupo.linhas %}
+<tr>{% if visao == 'empresa' %}<td><span class="badge">{{ linha.recibo }}</span></td><td>{{ linha.creditos }}</td>{% else %}<td class="empresa">{{ linha.empresa }}</td><td><span class="badge">{{ linha.recibo }}</span></td><td>{{ linha.creditos }}</td>{% endif %}</tr>
+{% endfor %}
+{% if grupo.total_linhas > 120 %}<tr><td colspan="3">Mostrando 120 linhas neste painel. Há mais {{ grupo.total_linhas - 120 }} linha(s) neste grupo.</td></tr>{% endif %}
+</tbody></table>
+</div></section>
+{% endfor %}
+</div>
+{% else %}<div class="empty">Nenhum crédito encontrado para o filtro selecionado.</div>{% endif %}
+{% else %}<div class="empty">Ainda não existe uma base publicada. Entre no admin, envie a planilha e publique os dados.</div>{% endif %}
+</div>
+{% endblock %}
