@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash
-import pandas as pd
+from openpyxl import load_workbook
 import io
 import re
 import os
@@ -13,7 +13,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "troque-esta-chave")
 app.config["MAX_CONTENT_LENGTH"] = 30 * 1024 * 1024
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(BASE_DIR, "data")
+DATA_DIR = os.environ.get("DATA_DIR", os.path.join(BASE_DIR, "data"))
 DATA_FILE = os.path.join(DATA_DIR, "dashboard_data.json")
 UPLOAD_FILE = os.path.join(DATA_DIR, "ultima_planilha.xlsx")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin123")
@@ -33,22 +33,23 @@ def garantir_pasta_dados():
 def usuario_logado():
     return session.get("admin_ok") is True
 
-def detectar_coluna_obs(df):
-    for col in df.columns:
-        serie = df[col].astype(str).str.upper().str.strip()
-        if ((serie == "NÃO REALIZADO") | (serie == "NAO REALIZADO")).any():
-            return col
+def detectar_coluna_obs_por_header(headers):
+    candidatos = ["OBSERVAÇÃO", "OBSERVACAO", "OBS", "STATUS", "SITUAÇÃO", "SITUACAO"]
+    headers_upper = [str(h).strip().upper() if h is not None else "" for h in headers]
+    for i, h in enumerate(headers_upper):
+        if h in candidatos:
+            return i
     return None
 
-def encontrar_coluna(df, candidatos):
-    mapa = {str(c).strip().upper(): c for c in df.columns}
+def encontrar_indice_coluna(headers, candidatos):
+    headers_upper = [str(h).strip().upper() if h is not None else "" for h in headers]
     for nome in candidatos:
-        if nome in mapa:
-            return mapa[nome]
+        if nome in headers_upper:
+            return headers_upper.index(nome)
     return None
 
 def extrair_empresa(valor):
-    if pd.isna(valor):
+    if valor is None:
         return "SEM EMPRESA"
     texto = str(valor).strip()
     if not texto:
@@ -59,14 +60,10 @@ def extrair_empresa(valor):
     return texto
 
 def formatar_data(valor):
-    if pd.isna(valor) or valor == "":
+    if valor in (None, ""):
         return "-"
-    try:
-        dt = pd.to_datetime(valor, errors="coerce", dayfirst=True)
-        if pd.notna(dt):
-            return dt.strftime("%d/%m/%Y")
-    except Exception:
-        pass
+    if isinstance(valor, datetime):
+        return valor.strftime("%d/%m/%Y")
     return str(valor).strip()
 
 def extrair_ano_mes(nome_aba):
@@ -89,41 +86,58 @@ def data_referencia_registro(ano, mes_num):
 
 def processar_planilha(stream):
     registros, avisos = [], []
-    with pd.ExcelFile(stream, engine="openpyxl") as xls:
-        for aba in xls.sheet_names:
+    wb = load_workbook(filename=stream, read_only=True, data_only=True)
+
+    for aba in wb.sheetnames:
+        try:
+            ws = wb[aba]
+            rows = ws.iter_rows(values_only=True)
+
             try:
-                df = pd.read_excel(xls, sheet_name=aba)
-            except Exception as e:
-                avisos.append(f"A aba '{aba}' não pôde ser lida: {e}")
+                headers = list(next(rows))
+            except StopIteration:
                 continue
-            if df.empty:
+
+            if not headers:
                 continue
-            col_obs = detectar_coluna_obs(df)
-            if col_obs is None:
+
+            idx_obs = detectar_coluna_obs_por_header(headers)
+            idx_empresa = encontrar_indice_coluna(headers, ["SETOR", "EMPRESA", "CLIENTE", "DEPOSITANTE"])
+            idx_func = encontrar_indice_coluna(headers, ["FUNCIONÁRIO", "FUNCIONARIO", "NOME", "COLABORADOR"])
+            idx_exame = encontrar_indice_coluna(headers, ["TIPO DE EXAME", "TIPO", "EXAME"])
+            idx_data = encontrar_indice_coluna(headers, ["DATA", "DT EXAME", "DATA EXAME"])
+            idx_recibo = 2 if len(headers) > 2 else None
+
+            if idx_obs is None:
                 continue
-            col_empresa = encontrar_coluna(df, ["SETOR", "EMPRESA", "CLIENTE", "DEPOSITANTE"])
-            col_func = encontrar_coluna(df, ["FUNCIONÁRIO", "FUNCIONARIO", "NOME", "COLABORADOR"])
-            col_exame = encontrar_coluna(df, ["TIPO DE EXAME", "TIPO", "EXAME"])
-            col_data = encontrar_coluna(df, ["DATA", "DT EXAME", "DATA EXAME"])
-            col_recibo = df.columns[2] if len(df.columns) > 2 else None
-            serie_obs = df[col_obs].astype(str).str.upper().str.strip()
-            filtrado = df[(serie_obs == "NÃO REALIZADO") | (serie_obs == "NAO REALIZADO")]
-            if filtrado.empty:
-                continue
+
             ano, mes_num, mes_nome = extrair_ano_mes(aba)
             data_ref = data_referencia_registro(ano, mes_num)
-            for _, row in filtrado.iterrows():
+
+            for row in rows:
+                if not row:
+                    continue
+
+                obs = row[idx_obs] if idx_obs < len(row) else None
+                obs_txt = str(obs).strip().upper() if obs is not None else ""
+                if obs_txt not in ("NÃO REALIZADO", "NAO REALIZADO"):
+                    continue
+
                 registros.append({
                     "ano": ano if ano else "Sem ano",
                     "mes": mes_nome,
                     "mes_num": mes_num if mes_num else 99,
-                    "empresa": extrair_empresa(row[col_empresa]) if col_empresa else "SEM EMPRESA",
-                    "funcionario": str(row[col_func]).strip() if col_func and pd.notna(row[col_func]) else "-",
-                    "exame": str(row[col_exame]).strip() if col_exame and pd.notna(row[col_exame]) else "-",
-                    "data": formatar_data(row[col_data]) if col_data else "-",
-                    "recibo": str(row[col_recibo]).strip() if col_recibo and pd.notna(row[col_recibo]) else "-",
+                    "empresa": extrair_empresa(row[idx_empresa]) if idx_empresa is not None and idx_empresa < len(row) else "SEM EMPRESA",
+                    "funcionario": str(row[idx_func]).strip() if idx_func is not None and idx_func < len(row) and row[idx_func] is not None else "-",
+                    "exame": str(row[idx_exame]).strip() if idx_exame is not None and idx_exame < len(row) and row[idx_exame] is not None else "-",
+                    "data": formatar_data(row[idx_data]) if idx_data is not None and idx_data < len(row) else "-",
+                    "recibo": str(row[idx_recibo]).strip() if idx_recibo is not None and idx_recibo < len(row) and row[idx_recibo] is not None else "-",
                     "data_ref": data_ref.strftime("%Y-%m-%d") if data_ref else None
                 })
+        except Exception as e:
+            avisos.append(f"A aba '{aba}' não pôde ser processada: {e}")
+
+    wb.close()
     registros.sort(key=lambda x: ((x["ano"] if isinstance(x["ano"], int) else 0), x["mes_num"], x["empresa"], x["recibo"]))
     return registros, avisos
 

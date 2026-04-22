@@ -1,4 +1,4 @@
-{% extends "base.html" %}{% block title %}Controle de Créditos - Dashboard{% endblock %}{% block body %}
+{% extends "base.html" %}{% block title %}Controle de Créditos - Painel{% endblock %}{% block body %}
 <div class="topbar">
 <div class="title"><h1>Painel de Créditos</h1><p>Consulta pública dos dados salvos. Ninguém precisa reenviar a planilha para ver o dashboard.</p></div>
 <div class="top-actions">{% if ultima_atualizacao %}<div class="chip">Última atualização: {{ ultima_atualizacao }}</div>{% endif %}{% if nome_arquivo %}<div class="chip">Base: {{ nome_arquivo }}</div>{% endif %}</div>
@@ -39,6 +39,6 @@
 {% endfor %}
 </div>
 {% else %}<div class="empty">Nenhum crédito encontrado para o filtro selecionado.</div>{% endif %}
-{% else %}<div class="empty">Ainda não existe uma base publicada. Entre no admin, envie a planilha e publique os dados.</div>{% endif %}
+{% else %}<div class="empty">Ainda não existe uma base publicada. Entre no administrador, envie a planilha e publique os dados.</div>{% endif %}
 </div>
 {% endblock %}

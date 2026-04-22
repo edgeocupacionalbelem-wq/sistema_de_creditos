@@ -1,4 +1,4 @@
-{% extends "base.html" %}{% block title %}CrediExame - Login Admin{% endblock %}{% block body %}
+{% extends "base.html" %}{% block title %}Controle de Créditos - Administrador{% endblock %}{% block body %}
 <div class="content"><div class="login-wrap">
 {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}<div class="flash-list">{% for category, message in messages %}<div class="alert {{ 'success' if category == 'success' else 'error' }}">{{ message }}</div>{% endfor %}</div>{% endif %}{% endwith %}
 <div class="card">

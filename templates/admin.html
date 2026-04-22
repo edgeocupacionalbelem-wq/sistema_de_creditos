@@ -1,7 +1,7 @@
-{% extends "base.html" %}{% block title %}Controle de Créditos - Admin{% endblock %}{% block body %}
+{% extends "base.html" %}{% block title %}Controle de Créditos - Administrador{% endblock %}{% block body %}
 <div class="topbar">
-<div class="title"><h1>Administração da Base</h1><p>Atualize a planilha uma vez e o dashboard público passa a mostrar os novos dados para todos.</p></div>
-<div class="top-actions"><a class="btn secondary" href="/">Ver dashboard</a><a class="btn secondary" href="/admin/logout">Sair</a></div>
+<div class="title"><h1>Administrador da Base</h1><p>Atualize a planilha uma vez e o painel público passa a mostrar os novos dados para todos.</p></div>
+<div class="top-actions"><a class="btn secondary" href="/">Ver painel</a><a class="btn secondary" href="/admin/logout">Sair</a></div>
 </div>
 <div class="content">
 {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}<div class="flash-list">{% for category, message in messages %}<div class="alert {{ 'success' if category == 'success' else 'error' }}">{{ message }}</div>{% endfor %}</div>{% endif %}{% endwith %}
@@ -14,7 +14,7 @@
 <div class="card" style="margin-bottom:18px">
 <div class="section-head" style="margin-top:0"><h2>Atualizar planilha publicada</h2><div class="chip">Substitui a base anterior</div></div>
 <form method="POST" enctype="multipart/form-data" style="display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end">
-<div class="field"><label>Nova planilha</label><input class="input" type="file" name="arquivo" accept=".xlsx,.xls" required></div>
+<div class="field"><label>Nova planilha</label><input class="input" type="file" name="arquivo" accept=".xlsx,.xlsm,.xltx,.xltm" required></div>
 <button class="btn" type="submit">Publicar nova base</button>
 </form>
 </div>
