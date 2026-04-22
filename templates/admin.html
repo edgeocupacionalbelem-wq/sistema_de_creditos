@@ -1,6 +1,6 @@
 {% extends "base.html" %}{% block title %}Controle de Créditos - Administrador{% endblock %}{% block body %}
 <div class="topbar">
-<div class="title"><h1>Administrador da Base</h1><p>Atualize a planilha uma vez e o painel público passa a mostrar os novos dados para todos.</p></div>
+<div class="title"><h1>Administrador da Base</h1><p>O Excel não é processado no site. Aqui você sobe somente o JSON pronto gerado no seu PC.</p></div>
 <div class="top-actions"><a class="btn secondary" href="/">Ver painel</a><a class="btn secondary" href="/admin/logout">Sair</a></div>
 </div>
 <div class="content">
@@ -12,14 +12,14 @@
 <div class="stat"><div class="stat-label">Empresas salvas</div><div class="stat-value">{{ ultimo_empresas }}</div></div>
 </div>
 <div class="card" style="margin-bottom:18px">
-<div class="section-head" style="margin-top:0"><h2>Atualizar planilha publicada</h2><div class="chip">Substitui a base anterior</div></div>
+<div class="section-head" style="margin-top:0"><h2>Publicar JSON processado localmente</h2><div class="chip">Leve e rápido no site</div></div>
 <form method="POST" enctype="multipart/form-data" style="display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end">
-<div class="field"><label>Nova planilha</label><input class="input" type="file" name="arquivo" accept=".xlsx,.xlsm,.xltx,.xltm" required></div>
-<button class="btn" type="submit">Publicar nova base</button>
+<div class="field"><label>Arquivo JSON</label><input class="input" type="file" name="arquivo_json" accept=".json" required></div>
+<button class="btn" type="submit">Publicar base</button>
 </form>
 </div>
 {% if avisos %}
-<div class="card"><div class="section-head" style="margin-top:0"><h2>Avisos da última importação</h2></div><ul>{% for aviso in avisos %}<li>{{ aviso }}</li>{% endfor %}</ul></div>
+<div class="card"><div class="section-head" style="margin-top:0"><h2>Avisos da última base</h2></div><ul>{% for aviso in avisos %}<li>{{ aviso }}</li>{% endfor %}</ul></div>
 {% endif %}
 </div>
 {% endblock %}

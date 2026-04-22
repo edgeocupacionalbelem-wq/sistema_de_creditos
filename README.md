@@ -1,24 +1,17 @@
-# Controle de Créditos - versão corrigida para Render
+# Site Render - Controle de Créditos
 
-## Correções aplicadas
-- remove dependência de pandas para leitura do Excel
-- usa openpyxl em modo read_only=True e data_only=True
-- reduz consumo de memória na importação
-- mantém painel público + administrador
-- salva dados publicados em JSON
+## Como funciona
+Este site NÃO processa a planilha Excel.
+Você processa o Excel no seu PC com o script local e sobe apenas o JSON pronto em /admin.
 
-## Como subir no Render
+## Render
 Build Command:
 pip install -r requirements.txt
 
 Start Command:
-gunicorn app:app --timeout 180
+gunicorn app:app --timeout 120
 
-## Variáveis de ambiente recomendadas
-ADMIN_PASSWORD=sua_senha_forte
-SECRET_KEY=sua_chave_forte
+## Variáveis de ambiente
+ADMIN_PASSWORD=sua_senha
+SECRET_KEY=sua_chave
 DATA_DIR=/opt/render/project/src/data
-
-## Python recomendado
-Crie runtime.txt com:
-python-3.12.7

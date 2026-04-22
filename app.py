@@ -1,156 +1,40 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash
-from openpyxl import load_workbook
-import io
-import re
 import os
 import json
 from collections import defaultdict
 from datetime import datetime
-from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "troque-esta-chave")
-app.config["MAX_CONTENT_LENGTH"] = 30 * 1024 * 1024
+app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.environ.get("DATA_DIR", os.path.join(BASE_DIR, "data"))
 DATA_FILE = os.path.join(DATA_DIR, "dashboard_data.json")
-UPLOAD_FILE = os.path.join(DATA_DIR, "ultima_planilha.xlsx")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin123")
 
-MESES_ORDEM = {
-    "JAN": 1, "JANEIRO": 1, "FEV": 2, "FEVEREIRO": 2, "MAR": 3, "MARCO": 3, "MARÇO": 3,
-    "ABR": 4, "ABRIL": 4, "MAI": 5, "MAIO": 5, "JUN": 6, "JUNHO": 6, "JUL": 7, "JULHO": 7,
-    "AGO": 8, "AGOSTO": 8, "SET": 9, "SETEMBRO": 9, "OUT": 10, "OUTUBRO": 10,
-    "NOV": 11, "NOVEMBRO": 11, "DEZ": 12, "DEZEMBRO": 12
-}
-MESES_SELECT = [("1","Janeiro"),("2","Fevereiro"),("3","Março"),("4","Abril"),("5","Maio"),("6","Junho"),
-                ("7","Julho"),("8","Agosto"),("9","Setembro"),("10","Outubro"),("11","Novembro"),("12","Dezembro")]
+MESES_SELECT = [
+    ("1","Janeiro"),("2","Fevereiro"),("3","Março"),("4","Abril"),
+    ("5","Maio"),("6","Junho"),("7","Julho"),("8","Agosto"),
+    ("9","Setembro"),("10","Outubro"),("11","Novembro"),("12","Dezembro")
+]
 
-def garantir_pasta_dados():
+def garantir_pasta():
     os.makedirs(DATA_DIR, exist_ok=True)
 
 def usuario_logado():
     return session.get("admin_ok") is True
-
-def detectar_coluna_obs_por_header(headers):
-    candidatos = ["OBSERVAÇÃO", "OBSERVACAO", "OBS", "STATUS", "SITUAÇÃO", "SITUACAO"]
-    headers_upper = [str(h).strip().upper() if h is not None else "" for h in headers]
-    for i, h in enumerate(headers_upper):
-        if h in candidatos:
-            return i
-    return None
-
-def encontrar_indice_coluna(headers, candidatos):
-    headers_upper = [str(h).strip().upper() if h is not None else "" for h in headers]
-    for nome in candidatos:
-        if nome in headers_upper:
-            return headers_upper.index(nome)
-    return None
-
-def extrair_empresa(valor):
-    if valor is None:
-        return "SEM EMPRESA"
-    texto = str(valor).strip()
-    if not texto:
-        return "SEM EMPRESA"
-    for sep in [" - ", "•"]:
-        if sep in texto:
-            return texto.split(sep)[0].strip()
-    return texto
-
-def formatar_data(valor):
-    if valor in (None, ""):
-        return "-"
-    if isinstance(valor, datetime):
-        return valor.strftime("%d/%m/%Y")
-    return str(valor).strip()
-
-def extrair_ano_mes(nome_aba):
-    texto = str(nome_aba).upper()
-    ano_match = re.search(r"(20\d{2})", texto)
-    ano = int(ano_match.group(1)) if ano_match else None
-    mes_num = None
-    for nome, num in MESES_ORDEM.items():
-        if nome in texto:
-            mes_num = num
-            break
-    return ano, mes_num, str(nome_aba)
-
-def data_referencia_registro(ano, mes_num):
-    if ano and mes_num:
-        return datetime(ano, mes_num, 1)
-    if ano:
-        return datetime(ano, 1, 1)
-    return None
-
-def processar_planilha(stream):
-    registros, avisos = [], []
-    wb = load_workbook(filename=stream, read_only=True, data_only=True)
-
-    for aba in wb.sheetnames:
-        try:
-            ws = wb[aba]
-            rows = ws.iter_rows(values_only=True)
-
-            try:
-                headers = list(next(rows))
-            except StopIteration:
-                continue
-
-            if not headers:
-                continue
-
-            idx_obs = detectar_coluna_obs_por_header(headers)
-            idx_empresa = encontrar_indice_coluna(headers, ["SETOR", "EMPRESA", "CLIENTE", "DEPOSITANTE"])
-            idx_func = encontrar_indice_coluna(headers, ["FUNCIONÁRIO", "FUNCIONARIO", "NOME", "COLABORADOR"])
-            idx_exame = encontrar_indice_coluna(headers, ["TIPO DE EXAME", "TIPO", "EXAME"])
-            idx_data = encontrar_indice_coluna(headers, ["DATA", "DT EXAME", "DATA EXAME"])
-            idx_recibo = 2 if len(headers) > 2 else None
-
-            if idx_obs is None:
-                continue
-
-            ano, mes_num, mes_nome = extrair_ano_mes(aba)
-            data_ref = data_referencia_registro(ano, mes_num)
-
-            for row in rows:
-                if not row:
-                    continue
-
-                obs = row[idx_obs] if idx_obs < len(row) else None
-                obs_txt = str(obs).strip().upper() if obs is not None else ""
-                if obs_txt not in ("NÃO REALIZADO", "NAO REALIZADO"):
-                    continue
-
-                registros.append({
-                    "ano": ano if ano else "Sem ano",
-                    "mes": mes_nome,
-                    "mes_num": mes_num if mes_num else 99,
-                    "empresa": extrair_empresa(row[idx_empresa]) if idx_empresa is not None and idx_empresa < len(row) else "SEM EMPRESA",
-                    "funcionario": str(row[idx_func]).strip() if idx_func is not None and idx_func < len(row) and row[idx_func] is not None else "-",
-                    "exame": str(row[idx_exame]).strip() if idx_exame is not None and idx_exame < len(row) and row[idx_exame] is not None else "-",
-                    "data": formatar_data(row[idx_data]) if idx_data is not None and idx_data < len(row) else "-",
-                    "recibo": str(row[idx_recibo]).strip() if idx_recibo is not None and idx_recibo < len(row) and row[idx_recibo] is not None else "-",
-                    "data_ref": data_ref.strftime("%Y-%m-%d") if data_ref else None
-                })
-        except Exception as e:
-            avisos.append(f"A aba '{aba}' não pôde ser processada: {e}")
-
-    wb.close()
-    registros.sort(key=lambda x: ((x["ano"] if isinstance(x["ano"], int) else 0), x["mes_num"], x["empresa"], x["recibo"]))
-    return registros, avisos
-
-def salvar_dados(payload):
-    garantir_pasta_dados()
-    with open(DATA_FILE, "w", encoding="utf-8") as f:
-        json.dump(payload, f, ensure_ascii=False, indent=2)
 
 def carregar_dados():
     if not os.path.exists(DATA_FILE):
         return None
     with open(DATA_FILE, "r", encoding="utf-8") as f:
         return json.load(f)
+
+def salvar_dados(payload):
+    garantir_pasta()
+    with open(DATA_FILE, "w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False, indent=2)
 
 def filtrar_intervalo(registros, inicio_mes, inicio_ano, fim_mes, fim_ano):
     if not inicio_mes or not inicio_ano:
@@ -164,6 +48,7 @@ def filtrar_intervalo(registros, inicio_mes, inicio_ano, fim_mes, fim_ano):
             dt_fim = datetime(hoje.year, hoje.month, 1)
     except Exception:
         return registros
+
     saida = []
     for r in registros:
         data_ref = r.get("data_ref")
@@ -282,37 +167,38 @@ def admin_logout():
 def admin():
     if not usuario_logado():
         return redirect(url_for("admin_login"))
+
     payload = carregar_dados()
     ultima_atualizacao = payload.get("ultima_atualizacao") if payload else None
     nome_arquivo = payload.get("arquivo_original") if payload else None
     ultimo_total = len(payload.get("registros", [])) if payload else 0
     ultimo_empresas = len(set(r["empresa"] for r in payload.get("registros", []))) if payload else 0
     avisos = payload.get("avisos", []) if payload else []
+
     if request.method == "POST":
-        arquivo = request.files.get("arquivo")
+        arquivo = request.files.get("arquivo_json")
         if not arquivo or not arquivo.filename:
-            flash("Selecione uma planilha para atualizar a base.", "error")
+            flash("Selecione o arquivo JSON gerado localmente.", "error")
             return redirect(url_for("admin"))
+
         try:
-            garantir_pasta_dados()
-            conteudo = arquivo.read()
-            with open(UPLOAD_FILE, "wb") as f:
-                f.write(conteudo)
-            registros, avisos_proc = processar_planilha(io.BytesIO(conteudo))
-            salvar_dados({
-                "arquivo_original": secure_filename(arquivo.filename),
-                "ultima_atualizacao": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
-                "avisos": avisos_proc,
-                "registros": registros
-            })
-            flash("Base atualizada com sucesso. Agora todos verão esses dados sem reenviar a planilha.", "success")
+            conteudo = arquivo.read().decode("utf-8")
+            novo_payload = json.loads(conteudo)
+
+            if not isinstance(novo_payload, dict) or "registros" not in novo_payload:
+                flash("JSON inválido. Gere o arquivo novamente pelo processador local.", "error")
+                return redirect(url_for("admin"))
+
+            salvar_dados(novo_payload)
+            flash("JSON publicado com sucesso. O painel público já está usando essa base.", "success")
             return redirect(url_for("admin"))
         except Exception as e:
-            flash(f"Erro ao atualizar a base: {e}", "error")
+            flash(f"Erro ao publicar o JSON: {e}", "error")
             return redirect(url_for("admin"))
+
     return render_template("admin.html", ultima_atualizacao=ultima_atualizacao, nome_arquivo=nome_arquivo,
                            ultimo_total=ultimo_total, ultimo_empresas=ultimo_empresas, avisos=avisos)
 
 if __name__ == "__main__":
-    garantir_pasta_dados()
+    garantir_pasta()
     app.run(debug=True)

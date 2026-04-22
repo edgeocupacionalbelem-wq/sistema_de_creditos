@@ -50,7 +50,7 @@ tbody tr td:first-child{border-left:1px solid var(--line);border-top-left-radius
 <a class="menu-item {% if request.path == '/' %}active{% endif %}" href="/"><span class="menu-icon"></span>Painel</a>
 <a class="menu-item {% if request.path.startswith('/admin') %}active{% endif %}" href="/admin"><span class="menu-icon"></span>Administrador</a>
 </nav>
-<div class="sidebar-footer">Upload único da planilha.<br>Todo mundo consulta os dados já processados.</div>
+<div class="sidebar-footer">Site online leve.<br>O Excel é processado no PC e o JSON pronto é publicado no admin.</div>
 </aside>
 <main class="main"><section class="panel">{% block body %}{% endblock %}</section></main>
 </div>

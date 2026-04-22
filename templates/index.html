@@ -1,6 +1,6 @@
 {% extends "base.html" %}{% block title %}Controle de Créditos - Painel{% endblock %}{% block body %}
 <div class="topbar">
-<div class="title"><h1>Painel de Créditos</h1><p>Consulta pública dos dados salvos. Ninguém precisa reenviar a planilha para ver o dashboard.</p></div>
+<div class="title"><h1>Painel de Créditos</h1><p>Consulta online dos dados já processados localmente e publicados via JSON.</p></div>
 <div class="top-actions">{% if ultima_atualizacao %}<div class="chip">Última atualização: {{ ultima_atualizacao }}</div>{% endif %}{% if nome_arquivo %}<div class="chip">Base: {{ nome_arquivo }}</div>{% endif %}</div>
 </div>
 <div class="filters">
@@ -21,7 +21,7 @@
 <div class="stat"><div class="stat-label">Anos encontrados</div><div class="stat-value">{{ resumo.total_anos }}</div></div>
 <div class="stat"><div class="stat-label">Meses encontrados</div><div class="stat-value">{{ resumo.total_meses }}</div></div>
 </div>
-<div class="section-head"><h2>{% if visao == 'ano' %}Resumo por ano{% elif visao == 'empresa' %}Resumo por empresa{% else %}Resumo por mês{% endif %}</h2><div class="chip">Somente observação exatamente “NÃO REALIZADO”</div></div>
+<div class="section-head"><h2>{% if visao == 'ano' %}Resumo por ano{% elif visao == 'empresa' %}Resumo por empresa{% else %}Resumo por mês{% endif %}</h2><div class="chip">Recibos repetidos = total de créditos</div></div>
 {% if grupos %}
 <div class="groups-grid">
 {% for grupo in grupos %}
@@ -39,6 +39,6 @@
 {% endfor %}
 </div>
 {% else %}<div class="empty">Nenhum crédito encontrado para o filtro selecionado.</div>{% endif %}
-{% else %}<div class="empty">Ainda não existe uma base publicada. Entre no administrador, envie a planilha e publique os dados.</div>{% endif %}
+{% else %}<div class="empty">Ainda não existe uma base publicada. Gere o JSON no PC e envie no administrador.</div>{% endif %}
 </div>
 {% endblock %}

@@ -2,7 +2,7 @@
 <div class="content"><div class="login-wrap">
 {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}<div class="flash-list">{% for category, message in messages %}<div class="alert {{ 'success' if category == 'success' else 'error' }}">{{ message }}</div>{% endfor %}</div>{% endif %}{% endwith %}
 <div class="card">
-<div class="title"><h1 style="font-size:28px">Login do administrador</h1><p>Somente quem tiver a senha pode atualizar a planilha publicada.</p></div>
+<div class="title"><h1 style="font-size:28px">Login do administrador</h1><p>Entre para publicar o JSON gerado no processador local.</p></div>
 <form method="POST" style="display:grid;gap:14px;margin-top:18px">
 <div class="field"><label>Senha</label><input class="input" type="password" name="senha" required></div>
 <button class="btn" type="submit">Entrar</button>
